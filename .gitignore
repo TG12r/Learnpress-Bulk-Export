@@ -1,0 +1,14 @@
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+# Logs de error si los hubiera
+*.log
+error_log
+debug.log
+# IDEs (VS Code, etc)
+.vscode/
+.idea/
+# Node modules (si usas npm para assets en el futuro)
+node_modules/
+# Composer (si usas composer en el futuro)
+vendor/

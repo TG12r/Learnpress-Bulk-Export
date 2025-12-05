@@ -1,0 +1,56 @@
+.lpbe-container {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.lpbe-column {
+    flex: 1;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.lpbe-search-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+#lpbe-user-search {
+    flex: 1;
+}
+
+.lpbe-list-box {
+    border: 1px solid #ddd;
+    padding: 10px;
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #f9f9f9;
+}
+
+.lpbe-user-item, .lpbe-selected-user {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lpbe-selected-user.active {
+    background-color: #e6f7ff;
+    border-color: #1890ff;
+}
+
+.lpbe-actions {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.lpbe-course-item {
+    margin-bottom: 5px;
+}
