@@ -88,7 +88,7 @@ Then activate via WordPress admin.
 ### Generating PDF Reports
 
 1. **Navigate to the plugin page:**
-   - Go to `WordPress Admin → LearnPress → Bulk Export`
+   - Go to `WordPress Admin → LP Bulk Export` (On the left menu)
 
 2. **Search and select students:**
    - Enter student name or email in the search field
