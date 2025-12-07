@@ -10,7 +10,11 @@
             </div>
             <div id="lpbe-search-results" class="lpbe-list-box"></div>
             
-            <h3>Selected Users</h3>
+            <h3>Selected Users 
+                <button type="button" id="lpbe-clear-all-btn" class="button button-small" style="margin-left: 10px; display: none; vertical-align: middle;">
+                    Clear All
+                </button>
+            </h3>
             <div id="lpbe-selected-users" class="lpbe-list-box"></div>
         </div>
 

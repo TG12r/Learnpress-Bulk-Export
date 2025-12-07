@@ -1,11 +1,26 @@
 jQuery(document).ready(function ($) {
     // Search Users
     $('#lpbe-search-btn').on('click', function () {
+        performSearch();
+    });
+
+    // Allow search with Enter key
+    $('#lpbe-user-search').on('keypress', function (e) {
+        if (e.which === 13) { // Enter key
+            e.preventDefault();
+            performSearch();
+        }
+    });
+
+    function performSearch() {
         var term = $('#lpbe-user-search').val();
         if (term.length < 3) {
             alert('Please enter at least 3 characters.');
             return;
         }
+
+        // Show loading state
+        $('#lpbe-search-results').html('<p style="text-align:center; padding:20px;"><span class="spinner is-active" style="float:none;"></span> Searching...</p>');
 
         $.post(lpbe_vars.ajax_url, {
             action: 'lpbe_search_users',
@@ -26,10 +41,12 @@ jQuery(document).ready(function ($) {
                 }
                 $('#lpbe-search-results').html(html);
             } else {
-                alert('Error: ' + response.data);
+                $('#lpbe-search-results').html('<p style="color:red;">Error: ' + response.data + '</p>');
             }
+        }).fail(function () {
+            $('#lpbe-search-results').html('<p style="color:red;">Error connecting to server</p>');
         });
-    });
+    }
 
     // Add User to Selection
     $(document).on('click', '.lpbe-add-user', function () {
@@ -52,13 +69,38 @@ jQuery(document).ready(function ($) {
 
         // Auto fetch courses
         fetchCourses(userId);
+
+        // Show Clear All button
+        updateClearAllButton();
     });
 
     // Remove User
     $(document).on('click', '.lpbe-remove-user', function () {
         $(this).closest('.lpbe-selected-user').remove();
         $('#lpbe-courses-container').empty();
+
+        // Update Clear All button visibility
+        updateClearAllButton();
     });
+
+    // Clear All Users
+    $('#lpbe-clear-all-btn').on('click', function () {
+        if (confirm('Are you sure you want to remove all selected users?')) {
+            $('#lpbe-selected-users').empty();
+            $('#lpbe-courses-container').empty();
+            updateClearAllButton();
+        }
+    });
+
+    // Update Clear All button visibility
+    function updateClearAllButton() {
+        var count = $('.lpbe-selected-user').length;
+        if (count > 0) {
+            $('#lpbe-clear-all-btn').text('Clear All (' + count + ')').show();
+        } else {
+            $('#lpbe-clear-all-btn').hide();
+        }
+    }
 
     // View Courses (populate right column)
     $(document).on('click', '.lpbe-view-courses', function () {
@@ -70,15 +112,21 @@ jQuery(document).ready(function ($) {
         $('.lpbe-selected-user').removeClass('active');
         $userDiv.addClass('active');
 
+        // Show loading state with user name
+        $('#lpbe-courses-container').html(
+            '<h3>Courses for ' + userName + '</h3>' +
+            '<p style="text-align:center; padding:20px;"><span class="spinner is-active" style="float:none;"></span> Loading courses...</p>'
+        );
+
         var storedCourses = $userDiv.data('courses');
         if (storedCourses) {
-            renderCourses(storedCourses, userId);
+            renderCourses(storedCourses, userId, userName);
         } else {
-            fetchCourses(userId, true);
+            fetchCourses(userId, true, userName);
         }
     });
 
-    function fetchCourses(userId, render) {
+    function fetchCourses(userId, render, userName) {
         $.post(lpbe_vars.ajax_url, {
             action: 'lpbe_get_user_courses',
             user_id: userId,
@@ -87,23 +135,34 @@ jQuery(document).ready(function ($) {
             if (response.success) {
                 $('#lpbe-selected-user-' + userId).data('courses', response.data);
                 if (render) {
-                    renderCourses(response.data, userId);
+                    renderCourses(response.data, userId, userName);
                 }
             } else {
                 console.log('Error fetching courses');
+                $('#lpbe-courses-container').html('<p style="color:red;">Error loading courses</p>');
             }
+        }).fail(function () {
+            $('#lpbe-courses-container').html('<p style="color:red;">Error connecting to server</p>');
         });
     }
 
-    function renderCourses(courses, userId) {
-        var html = '<h3>Courses</h3><label><input type="checkbox" class="lpbe-select-all-courses" data-userid="' + userId + '" checked> Select All</label><hr><div class="lpbe-course-list">';
+    function renderCourses(courses, userId, userName) {
+        // If userName not provided, try to get it from the DOM
+        if (!userName) {
+            userName = $('#lpbe-selected-user-' + userId).find('.lpbe-user-name').text() || 'User';
+        }
+
+        var html = '<h3 style="color: #2271b1; border-bottom: 2px solid #2271b1; padding-bottom: 8px; margin-bottom: 15px;">Courses for ' + userName + '</h3>';
+        html += '<label style="margin-bottom: 10px; display: block;"><input type="checkbox" class="lpbe-select-all-courses" data-userid="' + userId + '" checked> <strong>Select All</strong></label>';
+        html += '<div class="lpbe-course-list" style="max-height: 400px; overflow-y: auto;">';
+
         if (courses.length === 0) {
-            html += '<p>No enrolled courses found.</p>';
+            html += '<p style="color: #666; font-style: italic;">No enrolled courses found.</p>';
         } else {
             $.each(courses, function (index, course) {
-                html += '<div class="lpbe-course-item">' +
+                html += '<div class="lpbe-course-item" style="padding: 8px; margin: 5px 0; background: #f9f9f9; border-left: 3px solid #2271b1;">' +
                     '<label><input type="checkbox" class="lpbe-course-checkbox" name="user_' + userId + '_courses[]" value="' + course.id + '" checked> ' +
-                    course.title + ' (' + course.status + ' - ' + course.graduation + ')</label>' +
+                    '<strong>' + course.title + '</strong> <span style="color: #666; font-size: 12px;">(' + course.status + ' - ' + course.graduation + ')</span></label>' +
                     '</div>';
             });
         }
