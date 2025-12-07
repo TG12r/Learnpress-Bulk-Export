@@ -1,6 +1,6 @@
-jQuery(document).ready(function($) {
+jQuery(document).ready(function ($) {
     // Search Users
-    $('#lpbe-search-btn').on('click', function() {
+    $('#lpbe-search-btn').on('click', function () {
         var term = $('#lpbe-user-search').val();
         if (term.length < 3) {
             alert('Please enter at least 3 characters.');
@@ -11,14 +11,14 @@ jQuery(document).ready(function($) {
             action: 'lpbe_search_users',
             term: term,
             nonce: lpbe_vars.nonce
-        }, function(response) {
+        }, function (response) {
             if (response.success) {
                 var html = '';
                 if (response.data.length === 0) {
                     html = '<p>No users found.</p>';
                 } else {
                     html = '<ul>';
-                    $.each(response.data, function(index, user) {
+                    $.each(response.data, function (index, user) {
                         html += '<li class="lpbe-user-item" data-id="' + user.ID + '" data-name="' + user.display_name + '">' +
                             user.display_name + ' (' + user.user_email + ') <button type="button" class="button lpbe-add-user">Add</button></li>';
                     });
@@ -32,7 +32,7 @@ jQuery(document).ready(function($) {
     });
 
     // Add User to Selection
-    $(document).on('click', '.lpbe-add-user', function() {
+    $(document).on('click', '.lpbe-add-user', function () {
         var $item = $(this).closest('.lpbe-user-item');
         var userId = $item.data('id');
         var userName = $item.data('name');
@@ -45,35 +45,31 @@ jQuery(document).ready(function($) {
             '<span class="lpbe-user-name">' + userName + '</span>' +
             '<button type="button" class="button lpbe-remove-user">Remove</button>' +
             '<button type="button" class="button lpbe-view-courses">View Courses</button>' +
-            '<div class="lpbe-user-courses" style="display:none;"></div>' + // Container for courses
+            '<div class="lpbe-user-courses" style="display:none;"></div>' +
             '</div>';
-        
+
         $('#lpbe-selected-users').append(html);
-        
+
         // Auto fetch courses
         fetchCourses(userId);
     });
 
     // Remove User
-    $(document).on('click', '.lpbe-remove-user', function() {
+    $(document).on('click', '.lpbe-remove-user', function () {
         $(this).closest('.lpbe-selected-user').remove();
         $('#lpbe-courses-container').empty();
     });
 
     // View Courses (populate right column)
-    $(document).on('click', '.lpbe-view-courses', function() {
+    $(document).on('click', '.lpbe-view-courses', function () {
         var $userDiv = $(this).closest('.lpbe-selected-user');
         var userId = $userDiv.data('id');
         var userName = $userDiv.find('.lpbe-user-name').text();
-        
+
         // Highlight selected
         $('.lpbe-selected-user').removeClass('active');
         $userDiv.addClass('active');
 
-        // Show courses in right column
-        var coursesHtml = '<h3>Courses for ' + userName + '</h3>';
-        coursesHtml += '<label><input type="checkbox" class="lpbe-select-all-courses" checked> Select All</label><hr>';
-        
         var storedCourses = $userDiv.data('courses');
         if (storedCourses) {
             renderCourses(storedCourses, userId);
@@ -87,7 +83,7 @@ jQuery(document).ready(function($) {
             action: 'lpbe_get_user_courses',
             user_id: userId,
             nonce: lpbe_vars.nonce
-        }, function(response) {
+        }, function (response) {
             if (response.success) {
                 $('#lpbe-selected-user-' + userId).data('courses', response.data);
                 if (render) {
@@ -100,11 +96,11 @@ jQuery(document).ready(function($) {
     }
 
     function renderCourses(courses, userId) {
-        var html = '<h3>Courses</h3><label><input type="checkbox" class="lpbe-select-all-courses" data-userid="'+userId+'" checked> Select All</label><hr><div class="lpbe-course-list">';
+        var html = '<h3>Courses</h3><label><input type="checkbox" class="lpbe-select-all-courses" data-userid="' + userId + '" checked> Select All</label><hr><div class="lpbe-course-list">';
         if (courses.length === 0) {
             html += '<p>No enrolled courses found.</p>';
         } else {
-            $.each(courses, function(index, course) {
+            $.each(courses, function (index, course) {
                 html += '<div class="lpbe-course-item">' +
                     '<label><input type="checkbox" class="lpbe-course-checkbox" name="user_' + userId + '_courses[]" value="' + course.id + '" checked> ' +
                     course.title + ' (' + course.status + ' - ' + course.graduation + ')</label>' +
@@ -116,81 +112,49 @@ jQuery(document).ready(function($) {
     }
 
     // Select All Courses
-    $(document).on('change', '.lpbe-select-all-courses', function() {
+    $(document).on('change', '.lpbe-select-all-courses', function () {
         var checked = $(this).is(':checked');
         $('.lpbe-course-checkbox').prop('checked', checked);
-        // Update stored selection? 
-        // For simplicity, we read from DOM when exporting, or we should update data attribute.
-        // Let's rely on DOM state for the active user, but we need to persist it if they switch users.
-        // Actually, to keep it simple: we only export what is currently "configured". 
-        // But the requirement says "escoger a varios usuarios y ... escoger los cursos ... de cada usuario".
-        // So we need to store the selection state per user.
-        
-        // Let's save selection back to the user div data when checkboxes change.
         updateUserSelection($(this).data('userid'));
     });
-    
-    $(document).on('change', '.lpbe-course-checkbox', function() {
-         // Find current user ID from the container or context
-         // We can infer it from the name attribute user_ID_courses[]
-         var name = $(this).attr('name');
-         var match = name.match(/user_(\d+)_courses/);
-         if(match) {
-             updateUserSelection(match[1]);
-         }
+
+    $(document).on('change', '.lpbe-course-checkbox', function () {
+        var name = $(this).attr('name');
+        var match = name.match(/user_(\d+)_courses/);
+        if (match) {
+            updateUserSelection(match[1]);
+        }
     });
 
     function updateUserSelection(userId) {
         var selectedIds = [];
-        $('.lpbe-course-checkbox:checked').each(function() {
+        $('.lpbe-course-checkbox:checked').each(function () {
             selectedIds.push($(this).val());
         });
-        // Store in the user div
         $('#lpbe-selected-user-' + userId).data('selected-courses', selectedIds);
     }
 
     // Export PDF
-    $('#lpbe-export-btn').on('click', function() {
-        var data = [];
-        
-        $('.lpbe-selected-user').each(function() {
-            var userId = $(this).data('id');
-            var selectedCourses = $(this).data('selected-courses');
-            
-            // If user hasn't been "viewed" to select specific courses, assume ALL (or none? default ALL)
-            // If we fetched courses but didn't render/edit, we should default to all.
-            if (!selectedCourses) {
-                var allCourses = $(this).data('courses');
-                if (allCourses) {
-                    selectedCourses = allCourses.map(function(c) { return c.id; });
-                } else {
-                    selectedCourses = [];
-                }
-            }
-            
-            if (selectedCourses.length > 0) {
-                data.push({
-                    user_id: userId,
-                    courses: selectedCourses
-                });
-            }
-        });
+    $('#lpbe-export-btn').on('click', function () {
+        var result = collectData();
+        if (!result) return;
 
-        if (data.length === 0) {
-            alert('Please select users and courses.');
-            return;
-        }
+        $('#lpbe-loading').text('Processing...').show();
 
-        $('#lpbe-loading').show();
-        
         $.post(lpbe_vars.ajax_url, {
             action: 'lpbe_generate_pdf',
-            data: data,
+            data: result.data,
+            include_comparison: result.include_comparison,
+            debug_mode: result.debug_mode,
             nonce: lpbe_vars.nonce
-        }, function(response) {
+        }, function (response) {
             $('#lpbe-loading').hide();
             if (response.success) {
-                // Download PDF
+                // Show debug logs if debug mode is enabled
+                if (response.data.debug_logs) {
+                    alert('DEBUG LOGS:\n\n' + response.data.debug_logs.join('\n'));
+                }
+
                 var link = document.createElement('a');
                 link.href = 'data:application/pdf;base64,' + response.data.pdf;
                 link.download = 'learnpress-export.pdf';
@@ -200,4 +164,62 @@ jQuery(document).ready(function($) {
             }
         });
     });
+
+    // Send Email
+    $('#lpbe-email-btn').on('click', function () {
+        var result = collectData();
+        if (!result) return;
+
+        $('#lpbe-loading').text('Sending Emails...').show();
+
+        $.post(lpbe_vars.ajax_url, {
+            action: 'lpbe_send_email',
+            data: result.data,
+            include_comparison: result.include_comparison,
+            debug_mode: result.debug_mode,
+            nonce: lpbe_vars.nonce
+        }, function (response) {
+            $('#lpbe-loading').hide();
+            if (response.success) {
+                alert(response.data.message);
+            } else {
+                alert('Error sending emails: ' + response.data);
+            }
+        });
+    });
+
+    function collectData() {
+        var data = [];
+        $('.lpbe-selected-user').each(function () {
+            var userId = $(this).data('id');
+            var selectedCourses = $(this).data('selected-courses');
+
+            if (!selectedCourses) {
+                var allCourses = $(this).data('courses');
+                if (allCourses) {
+                    selectedCourses = allCourses.map(function (c) { return c.id; });
+                } else {
+                    selectedCourses = [];
+                }
+            }
+
+            if (selectedCourses.length > 0) {
+                data.push({
+                    user_id: userId,
+                    courses: selectedCourses
+                });
+            }
+        });
+
+        if (data.length === 0) {
+            alert('Please select users and courses.\n\nNote: Users without enrolled courses or with no courses selected will not be included.');
+            return null;
+        }
+
+        return {
+            data: data,
+            include_comparison: $('#lpbe-include-comparison').is(':checked'),
+            debug_mode: $('#lpbe-debug-mode').is(':checked')
+        };
+    }
 });

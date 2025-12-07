@@ -23,8 +23,22 @@
         </div>
     </div>
 
+    <div class="lpbe-options" style="margin: 15px 0; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <input type="checkbox" id="lpbe-include-comparison" checked>
+            <strong>Include Course Comparison Table</strong>
+            <span style="color: #666; font-size: 12px;">(Shows courses with 2+ students)</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="lpbe-debug-mode">
+            <strong>Debug Mode</strong>
+            <span style="color: #666; font-size: 12px;">(Show detailed logs in alert)</span>
+        </label>
+    </div>
+
     <div class="lpbe-actions">
         <button type="button" id="lpbe-export-btn" class="button button-primary button-large">Export PDF</button>
+        <button type="button" id="lpbe-email-btn" class="button button-secondary button-large" style="margin-left: 10px;">Send Email to Students</button>
         <div id="lpbe-loading" style="display:none;">Processing...</div>
     </div>
 </div>

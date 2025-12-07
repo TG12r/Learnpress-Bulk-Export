@@ -255,6 +255,9 @@ class LP_Bulk_Export_Ajax {
             $pdf->SetAutoPageBreak( true, 20 ); // Auto break at bottom
             $pdf->AliasNbPages();
     
+            // Array to collect all course data for comparison table
+            $all_courses_data = array();
+
             foreach ( $data as $user_entry ) {
                 $user_id = intval( $user_entry['user_id'] );
                 $course_ids = isset( $user_entry['courses'] ) ? $user_entry['courses'] : array();
@@ -355,6 +358,19 @@ class LP_Bulk_Export_Ajax {
                                     }
                                     
                                     $status = $course_data->get_status();
+                                    
+                                    // Collect data for comparison table
+                                    $course_key = $user_display . '_' . $course_id;
+                                    if ( ! isset( $all_courses_data[$course_key] ) ) {
+                                        $all_courses_data[$course_key] = array(
+                                            'user' => $user_display,
+                                            'course' => $course->post_title,
+                                            'progress' => $result,
+                                            'status' => $status,
+                                            'completed' => $completed_count,
+                                            'total' => $total_items
+                                        );
+                                    }
                                 }
                             }
                         } catch ( Exception $e ) { 
@@ -483,11 +499,131 @@ class LP_Bulk_Export_Ajax {
                     $pdf->SetY( $y + $card_h + 5 ); 
                 }
             }
+
+            // --- Add Comparison Table Page ---
+            $debug_mode = ! empty( $_POST['debug_mode'] ) && $_POST['debug_mode'] !== 'false';
+            $debug_logs = array();
+            
+            if ( $debug_mode ) {
+                $debug_logs[] = 'include_comparison raw: ' . print_r( $_POST['include_comparison'], true );
+                $debug_logs[] = 'all_courses_data count: ' . count( $all_courses_data );
+            }
+            
+            $include_comparison = ! empty( $_POST['include_comparison'] ) && $_POST['include_comparison'] !== 'false';
+            
+            if ( $debug_mode ) {
+                $debug_logs[] = 'include_comparison final: ' . ( $include_comparison ? 'true' : 'false' );
+            }
+            
+            if ( $include_comparison && ! empty( $all_courses_data ) ) {
+                if ( $debug_mode ) {
+                    $debug_logs[] = 'Entering comparison table generation';
+                }
+                
+                // Group data by course
+                $courses_by_id = array();
+                foreach ( $all_courses_data as $row_data ) {
+                    $course_name = $row_data['course'];
+                    if ( ! isset( $courses_by_id[$course_name] ) ) {
+                        $courses_by_id[$course_name] = array();
+                    }
+                    $courses_by_id[$course_name][] = $row_data;
+                }
+                
+                if ( $debug_mode ) {
+                    $debug_logs[] = 'Courses grouped: ' . count( $courses_by_id );
+                }
+                
+                // Filter courses with 2+ students
+                $courses_to_compare = array();
+                foreach ( $courses_by_id as $course_name => $students ) {
+                    if ( $debug_mode ) {
+                        $debug_logs[] = 'Course "' . $course_name . '" has ' . count( $students ) . ' students';
+                    }
+                    if ( count( $students ) >= 2 ) {
+                        $courses_to_compare[$course_name] = $students;
+                    }
+                }
+                
+                if ( $debug_mode ) {
+                    $debug_logs[] = 'Courses to compare: ' . count( $courses_to_compare );
+                }
+                
+                
+                // Only add page if there are courses to compare
+                if ( ! empty( $courses_to_compare ) ) {
+                    $pdf->AddPage();
+                    
+                    // Table Header
+                    $pdf->SetFont( 'Arial', 'B', 16 );
+                    $pdf->SetTextColor( 44, 62, 80 );
+                    $pdf->Cell( 0, 10, 'Course Progress Comparison', 0, 1, 'C' );
+                    $pdf->SetFont( 'Arial', 'I', 10 );
+                    $pdf->SetTextColor( 100, 100, 100 );
+                    $pdf->Cell( 0, 5, 'Showing courses with 2 or more students', 0, 1, 'C' );
+                    $pdf->Ln( 5 );
+                    
+                    // Render each course comparison
+                    foreach ( $courses_to_compare as $course_name => $students ) {
+                        // Course Name Header
+                        $pdf->SetFont( 'Arial', 'B', 12 );
+                        $pdf->SetTextColor( 52, 152, 219 );
+                        $course_display = iconv( 'UTF-8', 'ISO-8859-1//TRANSLIT', $course_name );
+                        $pdf->Cell( 0, 8, $course_display, 0, 1 );
+                        
+                        // Table Column Headers
+                        $pdf->SetFont( 'Arial', 'B', 9 );
+                        $pdf->SetFillColor( 52, 152, 219 );
+                        $pdf->SetTextColor( 255, 255, 255 );
+                        $pdf->SetDrawColor( 200, 200, 200 );
+                        
+                        $pdf->Cell( 70, 7, 'Student', 1, 0, 'C', true );
+                        $pdf->Cell( 40, 7, 'Progress', 1, 0, 'C', true );
+                        $pdf->Cell( 40, 7, 'Items Completed', 1, 0, 'C', true );
+                        $pdf->Cell( 40, 7, 'Status', 1, 1, 'C', true );
+                        
+                        // Table Rows
+                        $pdf->SetFont( 'Arial', '', 9 );
+                        $pdf->SetTextColor( 60, 60, 60 );
+                        
+                        $fill = false;
+                        foreach ( $students as $student_data ) {
+                            // Alternate row colors
+                            if ( $fill ) {
+                                $pdf->SetFillColor( 245, 245, 245 );
+                            } else {
+                                $pdf->SetFillColor( 255, 255, 255 );
+                            }
+                            
+                            $student_name = iconv( 'UTF-8', 'ISO-8859-1//TRANSLIT', $student_data['user'] );
+                            if ( strlen( $student_name ) > 35 ) $student_name = substr( $student_name, 0, 32 ) . '...';
+                            
+                            // Progress bar in cell
+                            $progress_pct = round( $student_data['progress'] );
+                            
+                            $pdf->Cell( 70, 7, $student_name, 1, 0, 'L', true );
+                            $pdf->Cell( 40, 7, $progress_pct . '%', 1, 0, 'C', true );
+                            $pdf->Cell( 40, 7, $student_data['completed'] . ' / ' . $student_data['total'], 1, 0, 'C', true );
+                            $pdf->Cell( 40, 7, ucfirst( $student_data['status'] ), 1, 1, 'C', true );
+                            
+                            $fill = !$fill;
+                        }
+                        
+                        $pdf->Ln( 5 ); // Space between courses
+                    }
+                }
+            }
+    
     
             $pdf_content = $pdf->Output( 'S' );
             $pdf_base64 = base64_encode( $pdf_content );
     
-            wp_send_json_success( array( 'pdf' => $pdf_base64 ) );
+            $response = array( 'pdf' => $pdf_base64 );
+            if ( $debug_mode && ! empty( $debug_logs ) ) {
+                $response['debug_logs'] = $debug_logs;
+            }
+            
+            wp_send_json_success( $response );
 
         } catch ( Throwable $e ) {
             error_log( 'Bulk Export PDF Error: ' . $e->getMessage() );
