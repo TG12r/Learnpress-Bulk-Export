@@ -39,7 +39,7 @@ Generate professional PDF reports for multiple LearnPress students at once. Incl
 Or clone directly:
 ```bash
 cd wp-content/plugins
-git clone https://github.com/YOUR-USERNAME/Learnpress-Bulk-Export.git
+git clone https://github.com/TG12r/Learnpress-Bulk-Export.git
 ```
 
 ---
